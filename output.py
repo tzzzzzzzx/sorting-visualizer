@@ -22,17 +22,20 @@ from sorting.quicksort import quick_sort
 from sorting.heapsort import heap_sort
 from sorting.combsort import comb_sort
 from sorting.monkeysort import monkey_sort
+from sorting.oddevensort import oddeven_sort,para_oddeven_sort
 
 stype_dic = {'all': -1,
              'insertion-sort': 0, 'shell-sort':1,  'selection-sort': 2, 
              'merge-sort': 3,     'quick-sort': 4, 'heap-sort': 5,
-             'bubble-sort': 6,    'comb-sort': 7}
+             'bubble-sort': 6,    'comb-sort': 7,  'oddeven-sort': 9,
+             'para-oddeven-sort': 10}
 titles = [r'Insertion Sort ($O(n^2)$)',          r'Shell Sort ($O(n \cdot log_2(n)^2)$)', r'Selection Sort ($O(n^2)$)',
           r'Merge Sort ($O(n \cdot log_2(n))$)', r'Quick Sort ($O(n \cdot log_2(n))$)',   r'Heap Sort ($O(n \cdot log_2(n))$)',
-          r'Bubble Sort ($O(n^2)$)',             r'Comb Sort ($O(n \cdot log_2(n))$)',    r'Monkey Sort ($O(n!)$)',]
+          r'Bubble Sort ($O(n^2)$)',             r'Comb Sort ($O(n \cdot log_2(n))$)',    r'Monkey Sort ($O(n!)$)', r'Odd-Even Sort ($O(n^2)$)',
+          r'Parallel Odd-Even Sort ($O(n \cdot log_2(n) + t^2)$)']
 funs = [insertion_sort, shell_sort, selection_sort,
         merge_sort,     quick_sort, heap_sort,
-        bubble_sort,    comb_sort,  monkey_sort]
+        bubble_sort,    comb_sort,  monkey_sort, oddeven_sort, para_oddeven_sort]
 
 def create_original_data(dtype):
     data = []
@@ -102,6 +105,7 @@ def draw_all_charts(original_data, frame_interval):
     frames = []
     fig = plt.figure(1, figsize=(16, 9))
     data_set = [Data(d) for d in original_data]
+    output_list = [0,1,10,3,4,5,6,7,9]
     for i in range(9):
         axs.append(fig.add_subplot(331 + i))
         axs[-1].set_xticks([])
@@ -110,18 +114,19 @@ def draw_all_charts(original_data, frame_interval):
                         wspace=0.05, hspace=0.15)
 
     # Get the data of all frames.
-    for i in range(8):
-        frames.append(funs[i](data_set))
-    # The frame count of monkey sort is 50 more than the maximum one.
-    frames.append(funs[8](data_set, max(len(f) for f in frames) + 50))
-
-    # Output the frame counts of all chart.
     names = []
     max_name_length = 0
     frame_counts = []
     max_frame_length = 0
-    for i in range(9):
+    for i in output_list:
+        frames.append(funs[i](data_set))
         names.append(re.findall(r'\w+ Sort', titles[i])[0] + ':')
+    # The frame count of monkey sort is 50 more than the maximum one.
+    # frames.append(funs[8](data_set, max(len(f) for f in frames) + 50))
+
+    # Output the frame counts of all chart.
+    
+    for i in range(9):
         if len(names[-1]) > max_name_length:
             max_name_length = len(names[-1])
         frame_counts.append(len(frames[i]))
@@ -137,7 +142,7 @@ def draw_all_charts(original_data, frame_interval):
         for i in range(9):
             if(len(frames[i]) > fi):
                 axs[i].cla()
-                axs[i].set_title(titles[i])
+                axs[i].set_title(titles[output_list[i]])
                 axs[i].set_xticks([])
                 axs[i].set_yticks([])
                 bars += axs[i].bar(list(range(Data.data_count)),           # X
