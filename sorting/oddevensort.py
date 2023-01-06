@@ -1,10 +1,10 @@
 # Script Name     : oddevensort.py
-# Author          : Super Bitch
+# Author          : tzzzzzzzx
 # Created         : 5th Jan 2023
 # Last Modified	  : 5th Jan 2023
-# Version         : 0.114514
+# Version         : 1.0
 # Modifications	  : 
-# Description     : Odd-Even sorting algorithm.
+# Description     : Odd-Even sorting algorithm & its parallel implementation.
 
 import copy
 from .data import Data
@@ -102,12 +102,7 @@ def para_oddeven_sort(data_set):
         threadL = min(thread1,thread2)
         threadR = max(thread1,thread2)
         
-        # threadL keeps smaller keys. threadR keeps greater keys.
-        # pointer in threadL goes from left to right
-        # pointer in threadR goes from right to left
-        # threadL and threadR fetch data at the same pace
-        # iteration for threadL goes from Lid[threadL] to Lid[threadL]+local_length_list[threadL]-1
-        # iteration for threadR goes from Lid[threadR]+local_length_list[threadR]-1 to Lid[threadR]
+        # Get pointer iteration bounds
         max_ptr_iters = max(local_length_list[threadL],local_length_list[threadR])
         threadL_iter_start = Lid[threadL]
         threadL_iter_end = Lid[threadL]+local_length_list[threadL]-1
@@ -116,7 +111,7 @@ def para_oddeven_sort(data_set):
         threadL_length = threadL_iter_end - threadL_iter_start + 1
         threadR_length = threadR_iter_start - threadR_iter_end + 1
         
-        # Fetching ptrs
+        # Initializing pointers
         threadL_fetchL = threadL_iter_start
         threadL_fetchR = threadR_iter_end
         threadR_fetchL = threadL_iter_end
@@ -124,7 +119,7 @@ def para_oddeven_sort(data_set):
         threadL_list = []
         threadR_list = []
         
-        # get pointer iterations in threadL and threadR
+        # Get pointer iterations in threadL and threadR
         for i in range(max_ptr_iters):
             frames.append(copy.deepcopy(ds_yb))
             frames[-1][threadL_fetchL].set_color('r')
@@ -169,12 +164,21 @@ def para_oddeven_sort(data_set):
                         
         threadR_list.reverse()
         
-        # Write the result back to ds
+        # Write the result back 
         ds_a = copy.deepcopy(ds)
         tot_list = threadL_list + threadR_list
-        for i in range(Lid[threadL],Lid[threadR]+local_length_list[threadR]):
-            ds_a[i] = tot_list[i-Lid[threadL]]
-            ds_a[i].set_color()
+        for i in range(max_ptr_iters-1,-1,-1): # avoid maxval change
+            if i+Lid[threadL] <= threadL_iter_end:
+                ds_a[i+Lid[threadL]] = tot_list[i]
+                ds_a[i+Lid[threadL]].set_color()
+            if i+Lid[threadR] <= threadR_iter_start:
+                ds_a[i+Lid[threadR]] = tot_list[i+len(threadL_list)]
+                ds_a[i+Lid[threadR]].set_color()
+            frames.append(copy.deepcopy(ds_a)) # this includes memcpy overhead.
+            if i+Lid[threadR] <= threadR_iter_start: frames[-1][i+Lid[threadR]].set_color('r')
+            if i+Lid[threadL] <= threadL_iter_end: frames[-1][i+Lid[threadL]].set_color('r')
+
+
         frames.append(ds_a) 
         return frames           
                 
@@ -183,7 +187,7 @@ def para_oddeven_sort(data_set):
     
     
     # Determining the Amount of Local Job
-    thread_count = 8 # Change this value if needed.
+    thread_count = 32 # Change this value if needed.
     local_length = Data.data_count // thread_count
     local_length_list = []
     residue = Data.data_count % thread_count
@@ -220,9 +224,6 @@ def para_oddeven_sort(data_set):
     
     for phase in range(thread_count): 
         ds = frames[-1]
-#        thread_frames = []
-#        for i in range(thread_count):
-#            thread_frames.append([])
         if phase % 2 == 1: # ODD PHASE
             ds_each_thread = copy.deepcopy(ds)
             for i in range(1,thread_count-1,2):
